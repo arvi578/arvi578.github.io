@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<title>Ultra Upload 😈</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
+
+<style>
+body { background:#0d0d0d; color:white; font-family:sans-serif; text-align:center; }
+input,button { padding:8px; margin:5px; border-radius:8px; }
+.box {
+  border:1px solid #333;
+  margin:10px;
+  padding:10px;
+  border-radius:10px;
+  background:#1a1a1a;
+}
+img,video { max-width:200px; margin-top:10px; }
+textarea { width:90%; height:100px; }
+</style>
+</head>
+
+<body>
+
+<h1>😈 Ultra Upload Center</h1>
+
+<input id="email" placeholder="email">
+<input id="pass" type="password" placeholder="password">
+<button onclick="login()">Login</button>
+
+<div id="adminPanel" style="display:none;">
+  <h3>👑 Admin Panel</h3>
+  <input type="file" id="fileInput">
+  <button onclick="upload()">آپلود</button>
+</div>
+
+<hr>
+
+<input id="search" placeholder="🔍 جستجو..." onkeyup="filterFiles()">
+
+<h3>📁 فایل‌ها</h3>
+<div id="list"></div>
+
+<h3>📋 لینک‌ها</h3>
+<textarea id="allLinks"></textarea><br>
+<button onclick="copyAll()">📋 کپی همه</button>
+
+<script>
+const firebaseConfig = {
+  apiKey: "API_KEY",
+  authDomain: "PROJECT.firebaseapp.com",
+  projectId: "PROJECT",
+  storageBucket: "PROJECT.appspot.com",
+};
+
+firebase.initializeApp(firebaseConfig);
+
+// 👑 چند ادمین
+const ADMINS = [
+  "UID1",
+  "UID2"
+];
+
+// 🔐 لاگین
+function login(){
+  firebase.auth().signInWithEmailAndPassword(email.value, pass.value);
+}
+
+// 👑 چک ادمین
+firebase.auth().onAuthStateChanged(user=>{
+  if(user && ADMINS.includes(user.uid)){
+    adminPanel.style.display = "block";
+  }
+});
+
+// 📤 آپلود
+function upload(){
+  const file = fileInput.files[0];
+  const ref = firebase.storage().ref("files/" + file.name);
+
+  ref.put(file, { contentType:file.type }).then(()=>{
+    alert("🚀 آپلود شد");
+    loadFiles();
+  });
+}
+
+// 📂 لیست
+let allData = [];
+
+function loadFiles(){
+  list.innerHTML = "";
+  allLinks.value = "";
+  allData = [];
+
+  firebase.storage().ref("files").listAll().then(res=>{
+    res.items.forEach(item=>{
+      item.getMetadata().then(meta=>{
+        item.getDownloadURL().then(url=>{
+
+          const fileData = {
+            name:item.name,
+            url:url,
+            size:(meta.size/1024).toFixed(1)+" KB",
+            date:meta.timeCreated
+          };
+
+          allData.push(fileData);
+          render(fileData);
+
+          allLinks.value += url + "\n";
+
+        });
+      });
+    });
+  });
+}
+
+// 🎨 نمایش فایل
+function render(f){
+  let preview = "";
+
+  if(f.name.match(/\.(jpg|png|jpeg|gif)$/)){
+    preview = `<img src="${f.url}">`;
+  }
+  else if(f.name.match(/\.(mp4|webm)$/)){
+    preview = `<video src="${f.url}" controls></video>`;
+  }
+
+  list.innerHTML += `
+  <div class="box">
+    <b>${f.name}</b><br>
+    📦 ${f.size} | 📅 ${new Date(f.date).toLocaleString()}<br>
+    
+    <a href="${f.url}" download>⬇ دانلود</a><br>
+
+    <button onclick="copyLink('${f.url}')">📋 کپی</button>
+    <button onclick="renameFile('${f.name}')">✏ تغییر نام</button>
+    <button onclick="deleteFile('${f.name}')">🗑 حذف</button>
+
+    ${preview}
+  </div>`;
+}
+
+// 🔍 سرچ
+function filterFiles(){
+  list.innerHTML = "";
+  const q = search.value.toLowerCase();
+
+  allData.forEach(f=>{
+    if(f.name.toLowerCase().includes(q)){
+      render(f);
+    }
+  });
+}
+
+// 📋 کپی
+function copyLink(link){
+  navigator.clipboard.writeText(link);
+  alert("کپی شد 😎");
+}
+
+// 📋 کپی همه
+function copyAll(){
+  navigator.clipboard.writeText(allLinks.value);
+  alert("همه کپی شد 🔥");
+}
+
+// 🗑 حذف
+function deleteFile(name){
+  if(!confirm("حذف؟")) return;
+
+  firebase.storage().ref("files/"+name).delete().then(()=>{
+    alert("حذف شد 💀");
+    loadFiles();
+  });
+}
+
+// ✏ تغییر نام (ری‌اپلود ساده)
+function renameFile(oldName){
+  const newName = prompt("اسم جدید؟");
+  if(!newName) return;
+
+  const oldRef = firebase.storage().ref("files/"+oldName);
+  oldRef.getDownloadURL().then(url=>{
+    fetch(url).then(res=>res.blob()).then(blob=>{
+      firebase.storage().ref("files/"+newName).put(blob).then(()=>{
+        oldRef.delete().then(()=>{
+          alert("تغییر نام شد 😈");
+          loadFiles();
+        });
+      });
+    });
+  });
+}
+
+loadFiles();
+</script>
+
+</body>
+</html>
