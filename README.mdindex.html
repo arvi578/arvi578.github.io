@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Arvin Site</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; }
+    .box { border: 1px solid black; margin: 10px; padding: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>سایت آروین 😎🔥</h1>
+
+<input id="text" placeholder="یه چیزی بنویس">
+<button onclick="add()">اضافه کن</button>
+
+<div id="list"></div>
+
+<script>
+let data = [];
+
+function add(){
+  let text = document.getElementById("text").value;
+  if(!text) return;
+
+  data.push(text);
+  show();
+}
+
+function show(){
+  let html = "";
+  data.forEach(i => {
+    html += "<div class='box'>" + i + "</div>";
+  });
+  document.getElementById("list").innerHTML = html;
+}
+</script>
+
+</body>
+</html>
